@@ -1,0 +1,93 @@
+INFO: com.sciforma.pharma.APIPharma.main() [main][V1.13] Demarrage de l'API: Wed Jan 09 17:18:18 CET 2019
+INFO: com.sciforma.pharma.APIPharma.connexion() [connexion] Chargement parametre connexion:Wed Jan 09 17:18:18 CET 2019
+INFO: com.sciforma.pharma.APIPharma.connexion() [connexion] Initialisation de la Session:Wed Jan 09 17:18:18 CET 2019
+INFO: com.sciforma.pharma.APIPharma.connexion() [connexion] https://cplan-dev.sciforma.net/sciforma :Wed Jan 09 17:18:18 CET 2019
+INFO: com.sciforma.pharma.APIPharma.connexion() [connexion] Connecté: Wed Jan 09 17:18:43 CET 2019 Ă  l'instance sciforma
+INFO: com.sciforma.pharma.APIPharma.chargementParametreSciforma() Demarrage du chargement des parametres de l'application:Wed Jan 09 17:18:43 CET 2019
+INFO: com.sciforma.pharma.APIPharma.chargementParametreSciforma() Fin du chargement des parametres de l'application:Wed Jan 09 17:18:43 CET 2019
+INFO: com.sciforma.pharma.APIPharma.process() =======================================================================================
+INFO: com.sciforma.pharma.APIPharma.process() Traitement du projet [1/789] 2018 INFRA - Renew hardware
+INFO: com.sciforma.pharma.APIPharma.process() =======================================================================================
+INFO: com.sciforma.pharma.APIPharma.process()                     2018 INFRA - Renew hardware => Réponds au critère du filtre CEVA - API Export Filter
+INFO: com.sciforma.pharma.APIPharma.process() Task:Opportunity study
+INFO: com.sciforma.pharma.APIPharma.process() Task:Collect business case
+INFO: com.sciforma.pharma.APIPharma.process() Task:Complete business case
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate business case
+INFO: com.sciforma.pharma.APIPharma.process() Task:Design
+INFO: com.sciforma.pharma.APIPharma.process() Task:Draft project card
+INFO: com.sciforma.pharma.APIPharma.process() Task:Finalize stakeholder card
+INFO: com.sciforma.pharma.APIPharma.process() Task:Plan communication
+INFO: com.sciforma.pharma.APIPharma.process() Task:Collect business requirements
+INFO: com.sciforma.pharma.APIPharma.process() Task:Collect technical requirements
+INFO: com.sciforma.pharma.APIPharma.process() Task:Draft GxP risk assessment
+INFO: com.sciforma.pharma.APIPharma.process() Task:Select software
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare RFP
+INFO: com.sciforma.pharma.APIPharma.process() Task:Compile responses
+INFO: com.sciforma.pharma.APIPharma.process() Task:Preselect vendors
+INFO: com.sciforma.pharma.APIPharma.process() Task:Conduct workshops or POC
+INFO: com.sciforma.pharma.APIPharma.process() Task:Conduct GxP supplier assessment
+INFO: com.sciforma.pharma.APIPharma.process() Task:Select vendor
+INFO: com.sciforma.pharma.APIPharma.process() Task:Negociate with vendor
+INFO: com.sciforma.pharma.APIPharma.process() Task:Complete clear choice
+INFO: com.sciforma.pharma.APIPharma.process() Task:Complete GxP validation plan
+INFO: com.sciforma.pharma.APIPharma.process() Task:Finalize project card
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate project through investment committee
+INFO: com.sciforma.pharma.APIPharma.process() Task:Implementation
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare project
+INFO: com.sciforma.pharma.APIPharma.process() Task:Plan and organize
+INFO: com.sciforma.pharma.APIPharma.process() Task:Detail functional architecture
+INFO: com.sciforma.pharma.APIPharma.process() Task:Detail technical architecture
+INFO: com.sciforma.pharma.APIPharma.process() Task:Define workflows and operating model
+INFO: com.sciforma.pharma.APIPharma.process() Task:Define migration strategy
+INFO: com.sciforma.pharma.APIPharma.process() Task:Do
+INFO: com.sciforma.pharma.APIPharma.process() Task:Specify developments (functional and technical)
+INFO: com.sciforma.pharma.APIPharma.process() Task:Specify interfaces (functional and technical)
+INFO: com.sciforma.pharma.APIPharma.process() Task:Execute developments
+INFO: com.sciforma.pharma.APIPharma.process() Task:Execute interfaces
+INFO: com.sciforma.pharma.APIPharma.process() Task:Configure
+INFO: com.sciforma.pharma.APIPharma.process() Task:Update specifications
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare infrastructure
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare development environment
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare pre prod environment
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare test environment
+INFO: com.sciforma.pharma.APIPharma.process() Task:Upload data and migrate
+INFO: com.sciforma.pharma.APIPharma.process() Task:Finalize GxP risk assessment
+INFO: com.sciforma.pharma.APIPharma.process() Task:Test
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare testings
+INFO: com.sciforma.pharma.APIPharma.process() Task:Plan testings
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare GxP testings
+INFO: com.sciforma.pharma.APIPharma.process() Task:Organize testings
+INFO: com.sciforma.pharma.APIPharma.process() Task:Conduct technical testings
+INFO: com.sciforma.pharma.APIPharma.process() Task:Conduct GxP testings (QI, QO, QP)
+INFO: com.sciforma.pharma.APIPharma.process() Task:Train
+INFO: com.sciforma.pharma.APIPharma.process() Task:Train project team
+INFO: com.sciforma.pharma.APIPharma.process() Task:Train key users
+INFO: com.sciforma.pharma.APIPharma.process() Task:Train users
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare go live
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare environments and access
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare operating processes
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare technical operations
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare post go live organisation
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate user tests
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate GxP tests
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate go live documentation
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate GxP go live
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate business go live and scope
+INFO: com.sciforma.pharma.APIPharma.process() Task:Run in parallel
+INFO: com.sciforma.pharma.APIPharma.process() Task:Support users
+INFO: com.sciforma.pharma.APIPharma.process() Task:Adjust configuration
+INFO: com.sciforma.pharma.APIPharma.process() Task:Correct bugs
+INFO: com.sciforma.pharma.APIPharma.process() Task:Go live
+INFO: com.sciforma.pharma.APIPharma.process() Task:Support users
+INFO: com.sciforma.pharma.APIPharma.process() Task:Adjust configuration
+INFO: com.sciforma.pharma.APIPharma.process() Task:Correct bugs
+INFO: com.sciforma.pharma.APIPharma.process() Task:Prepare and validate run
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate go run
+INFO: com.sciforma.pharma.APIPharma.process() Task:Validate business go run
+INFO: com.sciforma.pharma.APIPharma.process() Task:Go run
+INFO: com.sciforma.pharma.APIPharma.process() Task:Perform project return on experience
+INFO: com.sciforma.pharma.APIPharma.process() Task:Get final GxP validation
+INFO: com.sciforma.pharma.APIPharma.process() =======================================================================================
+INFO: com.sciforma.pharma.APIPharma.process() Traitement du projet [2/789] 2018 INFRA - Renew hardware libourne
+INFO: com.sciforma.pharma.APIPharma.process() =======================================================================================
