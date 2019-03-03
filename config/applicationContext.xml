@@ -16,8 +16,7 @@
     <bean id="contextApplicationContextProvider" class="com.sciforma.pharma.context.ApplicationContextProvider"></bean>
 	
 	<bean id="sciforma" class="com.sciforma.pharma.beans.Connector">
-        <!--property name="IP" value="https://cplan-test.sciforma.net"/-->
-		<property name="IP" value="https://cplan-dev.sciforma.net"/>
+        <property name="IP" value="https://cplan-test.sciforma.net"/>
         <property name="PORT" value="8080"/>
         <property name="CONTEXTE" value="sciforma"/>
         <property name="USER" value="psnextadmin"/>

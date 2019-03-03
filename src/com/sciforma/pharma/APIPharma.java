@@ -13,6 +13,8 @@ import com.sciforma.pharma.util.CSVUtils;
 import com.sciforma.psnext.api.CostAssignment;
 import com.sciforma.psnext.api.DatedData;
 import com.sciforma.psnext.api.DoubleDatedData;
+import com.sciforma.psnext.api.Global;
+import com.sciforma.psnext.api.LockException;
 import com.sciforma.psnext.api.PSException;
 import com.sciforma.psnext.api.Project;
 import com.sciforma.psnext.api.ResAssignment;
@@ -27,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -40,7 +43,7 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
  */
 public class APIPharma {
 
-    private static final String VERSION = "1.13";
+    private static final String VERSION = "1.14";
 
     public static ApplicationContext ctx;
 
@@ -55,6 +58,9 @@ public class APIPharma {
 
     public static Session mSession;
     private static ProjectManager projectManager;
+
+    private static Date startPeriod;
+    private static Date finishPeriod;
 
     private static final long CONST_DURATION_OF_DAY = 1000 * 60 * 60 * 24;
 
@@ -94,7 +100,8 @@ public class APIPharma {
             mSession.login(USER, PWD.toCharArray());
             Logger.info("[connexion] Connecté: " + new Date() + " Ă  l'instance " + CONTEXTE);
         } catch (PSException ex) {
-            Logger.error("[connexion] Erreur dans la connection de ... " + CONTEXTE, ex);
+            Logger.error("[connexion] Erreur dans la connection de ... " + CONTEXTE);
+            Logger.error(ex);
             System.exit(-1);
         }
     }
@@ -105,6 +112,19 @@ public class APIPharma {
             projectManager = new ProjectManagerImpl(mSession);
             CSV_FILE = ((SciformaField) ctx.getBean("sciforma_to_csv")).getSciformaField();
             //FILENAME_IMPORT_SAP = ((SciformaField) ctx.getBean("sap_to_sciforma")).getSciformaField();
+            Global g = new Global();
+
+            try {
+                startPeriod = g.getDateField("ExFull - Start period");
+            } catch (PSException ex) {
+                Logger.error(ex);
+            }
+            try {
+                finishPeriod = g.getDateField("ExFull - Finish period");
+            } catch (PSException ex) {
+                Logger.error(ex);
+            }
+
             Logger.info("Fin du chargement des parametres de l'application:" + new Date());
         } catch (Exception ex) {
             Logger.error("Erreur dans la lecture l'intitialisation du parametrage " + new Date(), ex);
@@ -118,29 +138,32 @@ public class APIPharma {
             FileWriter writer = new FileWriter(CSV_FILE);
             NumberFormat nf = new DecimalFormat("######.####");
             SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yy");
+
+            Logger.info("****** Extract de <" + sdf.format(startPeriod) + "> à <" + sdf.format(finishPeriod) + "> ******");
+
             List<String> valueToWrite = new ArrayList<>();
-            CSVUtils.writeLine(writer, Arrays.asList("Periode Start", "Periode Finish", "Year", "Quarter", "Month", "Week",
+            CSVUtils.writeLine(writer, Arrays.asList("Start date", "Finish data", "Year", "Quarter", "Month", "Week",
                     "Line Type", "Object Name", "Transaction Nature", "Transaction Type",
                     "Transaction status", "Organisation", "Object ID", "Resource Manager1",
-                    "Remaining Effort/Cost", "Actual Effort/Cost", "Total Effort/Cost", "Amount",
-                    "Hrcosts", "Job Classification", "#", "Tag Zone", "Tag project Scope",
-                    "Tag Portfolio Scope", "Tag departement", "Tag coutries", "Tag major contry in zone",
-                    "Tag chapter", "Study Code", "TaskID", "TaskName", "Type", "Hierarchy N-1",
+                    "Remaining Effort (h)/Cost", "Actual  Effort (h)/Cost", "Total  Effort (h)/Cost", "Amount",
+                    "Hrcosts", "Job Classification", "Task #", "Tag Zone", "Tag project",
+                    "Tag Portfolio", "Tag departement", "Tag countries", "Tag major country in zone",
+                    "Tag chapter", "Study Code", "Task ID", "Task Name", "Type", "Outline Level", "% Completed", "Hierarchy N-1",
                     "Hierarchy N-2", "Hierarchy N-3", "Hierarchy N-4", "Hierarchy N-5", "Hierarchy N-6",
                     "Hierarchy N-7", "Project Id", "Project Name", "Priority", "STG", "Manager 1",
                     "Product Code", "Project Code", "Project Type", "Category", "Franchise",
-                    "Target species", "Therapeutic axis", "Intendedindication", "Innovation level",
-                    "Targeted zones", "Strategic Product", "API_activeingredie", "Dosage form",
-                    "Portfolio Folder", "Project owner", "Last Modification", "Last published Date",
-                    "Coordinator", "Workflow State", "Project Frizez phase", "Project phase",
-                    "OfferConceptionman", "Patent team member", "POC process pilot",
-                    "Galenicprocesspilo", "Industrializationp", "Safety process pilot", "Dose_Indicationpro",
-                    "RegAffairsteamlead", "Marketingteammembe", "SupplyChainteammem", "PerformingOrganiza",
+                    "Target species", "Therapeutic axis", "Intended indication", "Innovation level",
+                    "Targeted zones", "Strategic Product", "Active ingredient", "Dosage form",
+                    "Portfolio Folder", "Project owner", "Last Modification date", "Last published date",
+                    "Coordinator", "Workflow State", "Project Frieze phase", "Project phase",
+                    "OCC manager", "Patent team member", "POC pilot",
+                    "Galenic pilot", "Industrialization pilot", "Safety pilot", "Dose pilot",
+                    "RA team leader", "Marketing team member", "Supply Chain team member", "Performing Organization",
                     "Owning Organization", "Users readers", "Users writers", "Organization readers",
                     "Organization writers", "Core team readers", "Core team writers",
-                    "Targeted countries", "Workpackage_ID", "Workpackage_Manager 1",
-                    "Workpackage_Manager 2", "Workpackage_Manager 3", "Workpackage_Name",
-                    "Workpackage_Priority", "Workpackage_Userwriter",
+                    "Targeted countries", "Workpackage ID", "Workpackage Manager 1",
+                    "Workpackage Manager 2", "Workpackage Manager 3", "Workpackage Name",
+                    "Workpackage Priority", "Workpackage Userwriter",
                     "TO Year 5 Countries", "TO Year 5 k€", "TO Year 5 Market value", "TO Year 5 Zones"));
 
             List<Project> lp = mSession.getProjectList(Project.VERSION_WORKING, Project.READWRITE_ACCESS);
@@ -164,10 +187,16 @@ public class APIPharma {
                             Calendar cDebutFin = Calendar.getInstance();
                             Calendar cFin = Calendar.getInstance();
 
-                            cDebut.setTime(task.getDateField("Start"));
-                            cDebutFin.setTime(task.getDateField("Start"));
+                            /*
+                             cDebut.setTime(task.getDateField("Start"));
+                             cDebutFin.setTime(task.getDateField("Start"));
+                             cDebutFin.add(Calendar.DATE, 6);
+                             cFin.setTime(task.getDateField("Finish"));
+                             */
+                            cDebut.setTime(startPeriod);
+                            cDebutFin.setTime(startPeriod);
                             cDebutFin.add(Calendar.DATE, 6);
-                            cFin.setTime(task.getDateField("Finish"));
+                            cFin.setTime(finishPeriod);
 
                             Logger.info("Task:" + task.getStringField("name"));
                             if (task.getBooleanField("CEVA - API Export Filter")) {
@@ -177,10 +206,10 @@ public class APIPharma {
                                     //**************************************************************************************\\
                                     Iterator resAssignIt = task.getResAssignmentList().iterator();
                                     while (resAssignIt.hasNext()) {
-                                        cDebut.setTime(task.getDateField("Start"));
-                                        cDebutFin.setTime(task.getDateField("Start"));
+                                        cDebut.setTime(startPeriod);
+                                        cDebutFin.setTime(startPeriod);
                                         cDebutFin.add(Calendar.DATE, 6);
-                                        cFin.setTime(task.getDateField("Finish"));
+                                        cFin.setTime(finishPeriod);
                                         ResAssignment resAssign = (ResAssignment) resAssignIt.next();
                                         if (resAssign.getBooleanField("CEVA - API Export Filter")) {
                                             Logger.info("      " + resAssign.getStringField("name"));
@@ -223,17 +252,18 @@ public class APIPharma {
 
                                                 valueToWrite.add(""); // Amount
                                                 /*lddd = resAssign.getDatedData("Hrcosts_k€/d", DatedData.DAY, cDebut.getTime(), cDebutFin.getTime());
-                                                data = 0;
-                                                for (DoubleDatedData ddd : lddd) {
-                                                    data = data + ddd.getData();
-                                                }*/
-                                                valueToWrite.add(nf.format(resAssign.getDoubleField("Hrcosts_k€/d")*8).replace(".", ","));
+                                                 data = 0;
+                                                 for (DoubleDatedData ddd : lddd) {
+                                                 data = data + ddd.getData();
+                                                 }*/
+                                                valueToWrite.add(nf.format(resAssign.getDoubleField("Hrcosts_k€/d") * 8).replace(".", ","));
 
                                                 valueToWrite.add(resAssign.getStringField("Job Classification").replace("\n", ",").replace(";", ","));
 
                                                 valueToWrite.add(String.valueOf(task.getIntField("#")).replace("\n", ",").replace(";", ","));
 
                                                 List<String> ls = task.getListField("Tag Zone");
+                                                Collections.sort(ls);
                                                 String text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -244,6 +274,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = task.getListField("Tag Project Scope");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -256,6 +287,7 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("Tag PMO Scope").replace("\n", ",").replace(";", ",")); //Tag Portfolio Scope?
 
                                                 ls = task.getListField("Tag Department Scope");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -266,6 +298,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = task.getListField("Tag Countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -281,6 +314,8 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("ID").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
+                                                valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -294,6 +329,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("priority").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Strategic Target Group");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -311,6 +347,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Franchise").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Target species");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -321,6 +358,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Therapeutic axis");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -334,6 +372,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Innovation level").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Targeted zones");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -346,6 +385,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getBooleanField("Strategic Product") ? "true" : "false");
 
                                                 ls = p.getListField("API (active ingredient)");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -373,6 +413,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Dose-Indication process pilot").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Reg Affairs team leaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -386,6 +427,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Supply Chain team member").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Performing Organizations");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -397,6 +439,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Owning Organization").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("usersReaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -406,6 +449,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("usersWriters");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -415,6 +459,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("organizationReaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -424,6 +469,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("organizationWriters");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -433,6 +479,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Core Team Readers");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -442,6 +489,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Core Team Writers");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -451,6 +499,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Targeted countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -467,6 +516,7 @@ public class APIPharma {
                                                     valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                                     ls = task.getListField("workPackageUserWriter");
+                                                    Collections.sort(ls);
                                                     text = "";
                                                     for (String l : ls) {
                                                         if (!text.equals("")) {
@@ -486,6 +536,7 @@ public class APIPharma {
                                                 }
 
                                                 ls = task.getListField("TO Year 5 Countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -507,20 +558,32 @@ public class APIPharma {
                                     }
                                 }
 
-                                cDebut.setTime(task.getDateField("Start"));
-                                cDebutFin.setTime(task.getDateField("Start"));
+                                /*
+                                 cDebut.setTime(task.getDateField("Start"));
+                                 cDebutFin.setTime(task.getDateField("Start"));
+                                 cDebutFin.add(Calendar.DATE, 6);
+                                 cFin.setTime(task.getDateField("Finish"));
+                                 */
+                                cDebut.setTime(startPeriod);
+                                cDebutFin.setTime(startPeriod);
                                 cDebutFin.add(Calendar.DATE, 6);
-                                cFin.setTime(task.getDateField("Finish"));
+                                cFin.setTime(finishPeriod);
                                 if (task.getCostAssignmentList().size() > 0) {
                                     //**************************************************************************************\\
                                     Logger.info("   Cost assignment(s) to task '" + task.getStringField("name") + "':");
                                     //**************************************************************************************\\
                                     Iterator costAssignIt = task.getCostAssignmentList().iterator();
                                     while (costAssignIt.hasNext()) {
-                                        cDebut.setTime(task.getDateField("Start"));
-                                        cDebutFin.setTime(task.getDateField("Start"));
+                                        /*
+                                         cDebut.setTime(task.getDateField("Start"));
+                                         cDebutFin.setTime(task.getDateField("Start"));
+                                         cDebutFin.add(Calendar.DATE, 6);
+                                         cFin.setTime(task.getDateField("Finish"));
+                                         */
+                                        cDebut.setTime(startPeriod);
+                                        cDebutFin.setTime(startPeriod);
                                         cDebutFin.add(Calendar.DATE, 6);
-                                        cFin.setTime(task.getDateField("Finish"));
+                                        cFin.setTime(finishPeriod);
                                         CostAssignment costAssign = (CostAssignment) costAssignIt.next();
                                         if (costAssign.getBooleanField("CEVA - API Export Filter")) {
                                             Logger.info("      " + costAssign.getStringField("name"));
@@ -567,6 +630,7 @@ public class APIPharma {
                                                 valueToWrite.add(String.valueOf(task.getIntField("#")));
 
                                                 List<String> ls = task.getListField("Tag Zone");
+                                                Collections.sort(ls);
                                                 String text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -577,6 +641,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = task.getListField("Tag Project Scope");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -589,6 +654,7 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("Tag PMO Scope").replace("\n", ",").replace(";", ",")); //Tag Portfolio Scope?
 
                                                 ls = task.getListField("Tag Department Scope");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -599,6 +665,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = task.getListField("Tag Countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -614,6 +681,8 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("ID").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
+                                                valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -627,6 +696,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("priority").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Strategic Target Group");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -644,6 +714,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Franchise").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Target species");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -654,6 +725,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Therapeutic axis");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -667,6 +739,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Innovation level").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Targeted zones");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -679,6 +752,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getBooleanField("Strategic Product") ? "true" : "false");
 
                                                 ls = p.getListField("API (active ingredient)");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -706,6 +780,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Dose-Indication process pilot").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Reg Affairs team leaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -719,6 +794,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Supply Chain team member").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Performing Organizations");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -730,6 +806,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Owning Organization").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("usersReaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -739,6 +816,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("usersWriters");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -748,6 +826,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("organizationReaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -757,6 +836,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("organizationWriters");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -766,6 +846,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Core Team Readers");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -775,6 +856,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Core Team Writers");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -784,6 +866,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Targeted countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -800,6 +883,7 @@ public class APIPharma {
                                                     valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                                     ls = task.getListField("workPackageUserWriter");
+                                                    Collections.sort(ls);
                                                     text = "";
                                                     for (String l : ls) {
                                                         if (!text.equals("")) {
@@ -819,6 +903,7 @@ public class APIPharma {
                                                 }
 
                                                 ls = task.getListField("TO Year 5 Countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -840,19 +925,31 @@ public class APIPharma {
                                     }
                                 }
 
-                                cDebut.setTime(task.getDateField("Start"));
-                                cDebutFin.setTime(task.getDateField("Start"));
+                                /*
+                                 cDebut.setTime(task.getDateField("Start"));
+                                 cDebutFin.setTime(task.getDateField("Start"));
+                                 cDebutFin.add(Calendar.DATE, 6);
+                                 cFin.setTime(task.getDateField("Finish"));
+                                 */
+                                cDebut.setTime(startPeriod);
+                                cDebutFin.setTime(startPeriod);
                                 cDebutFin.add(Calendar.DATE, 6);
-                                cFin.setTime(task.getDateField("Finish"));
+                                cFin.setTime(finishPeriod);
                                 long diff = Math.abs(cDebut.getTime().getTime() - cFin.getTime().getTime());
                                 long numberOfDay = (long) diff / CONST_DURATION_OF_DAY;
                                 int numberWeek = (int) Math.ceil(numberOfDay / 7);
                                 numberWeek++;
                                 if (task.getTransactionList().size() > 0) {
-                                    cDebut.setTime(task.getDateField("Start"));
-                                    cDebutFin.setTime(task.getDateField("Start"));
+                                    /*
+                                     cDebut.setTime(task.getDateField("Start"));
+                                     cDebutFin.setTime(task.getDateField("Start"));
+                                     cDebutFin.add(Calendar.DATE, 6);
+                                     cFin.setTime(task.getDateField("Finish"));
+                                     */
+                                    cDebut.setTime(startPeriod);
+                                    cDebutFin.setTime(startPeriod);
                                     cDebutFin.add(Calendar.DATE, 6);
-                                    cFin.setTime(task.getDateField("Finish"));
+                                    cFin.setTime(finishPeriod);
                                     //**************************************************************************************\\
                                     Logger.info("   Transaction(s) to task '" + task.getStringField("name") + "':");
                                     //**************************************************************************************\\
@@ -888,6 +985,7 @@ public class APIPharma {
 
                                                 List<String> ls = task.getListField("Tag Zone");
                                                 String text = "";
+                                                Collections.sort(ls);
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
                                                         text += ",";
@@ -897,6 +995,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = task.getListField("Tag Project Scope");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -909,6 +1008,7 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("Tag PMO Scope").replace("\n", ",").replace(";", ",")); //Tag Portfolio Scope?
 
                                                 ls = task.getListField("Tag Department Scope");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -919,6 +1019,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = task.getListField("Tag Countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -934,6 +1035,8 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("ID").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
+                                                valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -947,6 +1050,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("priority").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Strategic Target Group");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -964,6 +1068,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Franchise").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Target species");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -974,6 +1079,7 @@ public class APIPharma {
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Therapeutic axis");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -987,6 +1093,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Innovation level").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Targeted zones");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -999,6 +1106,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getBooleanField("Strategic Product") ? "true" : "false");
 
                                                 ls = p.getListField("API (active ingredient)");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1026,6 +1134,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Dose-Indication process pilot").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Reg Affairs team leaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1039,6 +1148,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Supply Chain team member").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("Performing Organizations");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1050,6 +1160,7 @@ public class APIPharma {
                                                 valueToWrite.add(p.getStringField("Owning Organization").replace("\n", ",").replace(";", ","));
 
                                                 ls = p.getListField("usersReaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1059,6 +1170,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("usersWriters");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1068,6 +1180,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("organizationReaders");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1077,6 +1190,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("organizationWriters");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1086,6 +1200,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Core Team Readers");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1095,6 +1210,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Core Team Writers");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1104,6 +1220,7 @@ public class APIPharma {
                                                 }
                                                 valueToWrite.add(text.replace("\n", ",").replace(";", ","));
                                                 ls = p.getListField("Targeted countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1120,6 +1237,7 @@ public class APIPharma {
                                                     valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                                     ls = task.getListField("workPackageUserWriter");
+                                                    Collections.sort(ls);
                                                     text = "";
                                                     for (String l : ls) {
                                                         if (!text.equals("")) {
@@ -1139,6 +1257,7 @@ public class APIPharma {
                                                 }
 
                                                 ls = task.getListField("TO Year 5 Countries");
+                                                Collections.sort(ls);
                                                 text = "";
                                                 for (String l : ls) {
                                                     if (!text.equals("")) {
@@ -1163,266 +1282,52 @@ public class APIPharma {
                                     //**************************************************************************************\\
                                     Logger.info("  Milestones '" + task.getStringField("name") + "':");
                                     //**************************************************************************************\\
-                                    cDebut.setTime(task.getDateField("Start"));
-                                    cDebutFin.setTime(task.getDateField("Start"));
+                                    /*
+                                     cDebut.setTime(task.getDateField("Start"));
+                                     cDebutFin.setTime(task.getDateField("Start"));
+                                     cDebutFin.add(Calendar.DATE, 6);
+                                     cFin.setTime(task.getDateField("Finish"));
+                                     */
+                                    cDebut.setTime(startPeriod);
+                                    cDebutFin.setTime(startPeriod);
                                     cDebutFin.add(Calendar.DATE, 6);
-                                    cFin.setTime(task.getDateField("Finish"));
-                                    valueToWrite.add(sdf.format(cDebut.getTime()));
-                                    valueToWrite.add(sdf.format(cDebutFin.getTime()));
-                                    valueToWrite.add(String.valueOf(cDebut.get(Calendar.YEAR)));
-                                    valueToWrite.add((cDebut.get(Calendar.MONTH) >= Calendar.JANUARY && cDebut.get(Calendar.MONTH) <= Calendar.MARCH) ? "Q1" : (cDebut.get(Calendar.MONTH) >= Calendar.APRIL && cDebut.get(Calendar.MONTH) <= Calendar.JUNE) ? "Q2" : (cDebut.get(Calendar.MONTH) >= Calendar.JULY && cDebut.get(Calendar.MONTH) <= Calendar.SEPTEMBER) ? "Q3" : "Q4");
-                                    valueToWrite.add(String.valueOf(cDebut.get(Calendar.MONTH) + 1));
-                                    valueToWrite.add(String.valueOf(cDebut.get(Calendar.WEEK_OF_YEAR) == 53 ? 1 : cDebut.get(Calendar.WEEK_OF_YEAR) + 1));
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");//valueToWrite.add(transaction.getStringField("Organization"));
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add(String.valueOf(task.getIntField("#")));
+                                    cFin.setTime(finishPeriod);
+                                    while (cDebut.before(cFin)) {
+                                        valueToWrite.add(sdf.format(cDebut.getTime()));
+                                        valueToWrite.add(sdf.format(cDebutFin.getTime()));
+                                        valueToWrite.add(String.valueOf(cDebut.get(Calendar.YEAR)));
+                                        valueToWrite.add((cDebut.get(Calendar.MONTH) >= Calendar.JANUARY && cDebut.get(Calendar.MONTH) <= Calendar.MARCH) ? "Q1" : (cDebut.get(Calendar.MONTH) >= Calendar.APRIL && cDebut.get(Calendar.MONTH) <= Calendar.JUNE) ? "Q2" : (cDebut.get(Calendar.MONTH) >= Calendar.JULY && cDebut.get(Calendar.MONTH) <= Calendar.SEPTEMBER) ? "Q3" : "Q4");
+                                        valueToWrite.add(String.valueOf(cDebut.get(Calendar.MONTH) + 1));
+                                        valueToWrite.add(String.valueOf(cDebut.get(Calendar.WEEK_OF_YEAR) == 53 ? 1 : cDebut.get(Calendar.WEEK_OF_YEAR) + 1));
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");//valueToWrite.add(transaction.getStringField("Organization"));
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("0,001");
+                                        valueToWrite.add("0,001");
+                                        valueToWrite.add("0,001");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add(String.valueOf(task.getIntField("#")));
 
-                                    List<String> ls = task.getListField("Tag Zone");
-                                    String text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
+                                        List<String> ls = task.getListField("Tag Zone");
+                                        Collections.sort(ls);
+                                        String text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
                                         }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
-                                    ls = task.getListField("Tag Project Scope");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(task.getStringField("Tag PMO Scope").replace("\n", ",").replace(";", ",")); //Tag Portfolio Scope?
-
-                                    ls = task.getListField("Tag Department Scope");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    ls = task.getListField("Tag Countries");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(task.getBooleanField("Tag Major Country in Zone") ? "true" : "false");
-                                    valueToWrite.add(task.getStringField("Tag Chapter").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("PHARMA - Study Code").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("ID").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
-                                    valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-4").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-5").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-6").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-7").replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("ID").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Name").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("priority").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Strategic Target Group");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
-                                    valueToWrite.add(p.getStringField("Franchise").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Target species");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Therapeutic axis");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Intended indication(s)").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Innovation level").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Targeted zones");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getBooleanField("Strategic Product") ? "true" : "false");
-
-                                    ls = p.getListField("API (active ingredient)");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Dosage form").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Portfolio Folder").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project owner").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(sdf.format(p.getDateField("Modified Date")));
-                                    valueToWrite.add(sdf.format(p.getDateField("Published Date")));
-                                    valueToWrite.add(p.getStringField("Coordinator").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Workflow State").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Frise Phase project").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project phase").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Offer Conception manager").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Patent team member").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("POC process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Galenic process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Industrialization process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Safety process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Dose-Indication process pilot").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Reg Affairs team leaders");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Marketing team member").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Supply Chain team member").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Performing Organizations");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Owning Organization").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("usersReaders");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("usersWriters");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("organizationReaders");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("organizationWriters");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("Core Team Readers");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("Core Team Writers");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("Targeted countries");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    if (!task.getStringField("Work Package ID").isEmpty()) {
-                                        valueToWrite.add(task.getStringField("Work Package ID").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
-                                        ls = task.getListField("workPackageUserWriter");
+                                        ls = task.getListField("Tag Project Scope");
+                                        Collections.sort(ls);
                                         text = "";
                                         for (String l : ls) {
                                             if (!text.equals("")) {
@@ -1431,296 +1336,328 @@ public class APIPharma {
                                             text += l;
                                         }
                                         valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    } else {
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                    }
 
-                                    ls = task.getListField("TO Year 5 Countries");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
+                                        valueToWrite.add(task.getStringField("Tag PMO Scope").replace("\n", ",").replace(";", ",")); //Tag Portfolio Scope?
+
+                                        ls = task.getListField("Tag Department Scope");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
                                         }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 k€")).replace(".", ","));
-                                    valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 Market value")).replace(".", ","));
-                                    valueToWrite.add(task.getStringField("TO Year 5 Zones").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
-                                    CSVUtils.writeLine(writer, valueToWrite);
-                                    valueToWrite = new ArrayList<>();
+                                        ls = task.getListField("Tag Countries");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(task.getBooleanField("Tag Major Country in Zone") ? "true" : "false");
+                                        valueToWrite.add(task.getStringField("Tag Chapter").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("PHARMA - Study Code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("ID").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
+                                        valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-4").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-5").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-6").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-7").replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("ID").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("priority").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Strategic Target Group");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
+                                        valueToWrite.add(p.getStringField("Franchise").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Target species");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Therapeutic axis");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Intended indication(s)").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Innovation level").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Targeted zones");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getBooleanField("Strategic Product") ? "true" : "false");
+
+                                        ls = p.getListField("API (active ingredient)");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Dosage form").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Portfolio Folder").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project owner").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(sdf.format(p.getDateField("Modified Date")));
+                                        valueToWrite.add(sdf.format(p.getDateField("Published Date")));
+                                        valueToWrite.add(p.getStringField("Coordinator").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Workflow State").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Frise Phase project").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project phase").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Offer Conception manager").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Patent team member").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("POC process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Galenic process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Industrialization process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Safety process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Dose-Indication process pilot").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Reg Affairs team leaders");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Marketing team member").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Supply Chain team member").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Performing Organizations");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Owning Organization").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("usersReaders");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("usersWriters");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("organizationReaders");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("organizationWriters");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("Core Team Readers");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("Core Team Writers");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("Targeted countries");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        if (!task.getStringField("Work Package ID").isEmpty()) {
+                                            valueToWrite.add(task.getStringField("Work Package ID").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
+                                            ls = task.getListField("workPackageUserWriter");
+                                            Collections.sort(ls);
+                                            text = "";
+                                            for (String l : ls) {
+                                                if (!text.equals("")) {
+                                                    text += ",";
+                                                }
+                                                text += l;
+                                            }
+                                            valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        } else {
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                        }
+
+                                        ls = task.getListField("TO Year 5 Countries");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 k€")).replace(".", ","));
+                                        valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 Market value")).replace(".", ","));
+                                        valueToWrite.add(task.getStringField("TO Year 5 Zones").replace("\n", ",").replace(";", ","));
+
+                                        CSVUtils.writeLine(writer, valueToWrite);
+                                        valueToWrite = new ArrayList<>();
+                                        cDebut.add(Calendar.DATE, 7);
+                                        cDebutFin.add(Calendar.DATE, 7);
+                                    }
                                 }
                                 if (task.getBooleanField("isWorkPackage")) {
                                     //**************************************************************************************\\
                                     Logger.info("  Work Package '" + task.getStringField("name") + "':");
                                     //**************************************************************************************\\
-                                    cDebut.setTime(task.getDateField("Start"));
-                                    cDebutFin.setTime(task.getDateField("Start"));
+                                    /*
+                                     cDebut.setTime(task.getDateField("Start"));
+                                     cDebutFin.setTime(task.getDateField("Start"));
+                                     cDebutFin.add(Calendar.DATE, 6);
+                                     cFin.setTime(task.getDateField("Finish"));
+                                     */
+                                    cDebut.setTime(startPeriod);
+                                    cDebutFin.setTime(startPeriod);
                                     cDebutFin.add(Calendar.DATE, 6);
-                                    cFin.setTime(task.getDateField("Finish"));
-                                    valueToWrite.add(sdf.format(cDebut.getTime()));
-                                    valueToWrite.add(sdf.format(cDebutFin.getTime()));
-                                    valueToWrite.add(String.valueOf(cDebut.get(Calendar.YEAR)));
-                                    valueToWrite.add((cDebut.get(Calendar.MONTH) >= Calendar.JANUARY && cDebut.get(Calendar.MONTH) <= Calendar.MARCH) ? "Q1" : (cDebut.get(Calendar.MONTH) >= Calendar.APRIL && cDebut.get(Calendar.MONTH) <= Calendar.JUNE) ? "Q2" : (cDebut.get(Calendar.MONTH) >= Calendar.JULY && cDebut.get(Calendar.MONTH) <= Calendar.SEPTEMBER) ? "Q3" : "Q4");
-                                    valueToWrite.add(String.valueOf(cDebut.get(Calendar.MONTH) + 1));
-                                    valueToWrite.add(String.valueOf(cDebut.get(Calendar.WEEK_OF_YEAR) == 53 ? 1 : cDebut.get(Calendar.WEEK_OF_YEAR) + 1));
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");//valueToWrite.add(transaction.getStringField("Organization"));
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add("");
-                                    valueToWrite.add(String.valueOf(task.getIntField("#")));
+                                    cFin.setTime(finishPeriod);
+                                    while (cDebut.before(cFin)) {
+                                        valueToWrite.add(sdf.format(cDebut.getTime()));
+                                        valueToWrite.add(sdf.format(cDebutFin.getTime()));
+                                        valueToWrite.add(String.valueOf(cDebut.get(Calendar.YEAR)));
+                                        valueToWrite.add((cDebut.get(Calendar.MONTH) >= Calendar.JANUARY && cDebut.get(Calendar.MONTH) <= Calendar.MARCH) ? "Q1" : (cDebut.get(Calendar.MONTH) >= Calendar.APRIL && cDebut.get(Calendar.MONTH) <= Calendar.JUNE) ? "Q2" : (cDebut.get(Calendar.MONTH) >= Calendar.JULY && cDebut.get(Calendar.MONTH) <= Calendar.SEPTEMBER) ? "Q3" : "Q4");
+                                        valueToWrite.add(String.valueOf(cDebut.get(Calendar.MONTH) + 1));
+                                        valueToWrite.add(String.valueOf(cDebut.get(Calendar.WEEK_OF_YEAR) == 53 ? 1 : cDebut.get(Calendar.WEEK_OF_YEAR) + 1));
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");//valueToWrite.add(transaction.getStringField("Organization"));
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("0,001");
+                                        valueToWrite.add("0,001");
+                                        valueToWrite.add("0,001");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add("");
+                                        valueToWrite.add(String.valueOf(task.getIntField("#")));
 
-                                    List<String> ls = task.getListField("Tag Zone");
-                                    String text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
+                                        List<String> ls = task.getListField("Tag Zone");
+                                        Collections.sort(ls);
+                                        String text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
                                         }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
-                                    ls = task.getListField("Tag Project Scope");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(task.getStringField("Tag PMO Scope").replace("\n", ",").replace(";", ",")); //Tag Portfolio Scope?
-
-                                    ls = task.getListField("Tag Department Scope");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    ls = task.getListField("Tag Countries");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(task.getBooleanField("Tag Major Country in Zone") ? "true" : "false");
-                                    valueToWrite.add(task.getStringField("Tag Chapter").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("PHARMA - Study Code").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("ID").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
-                                    valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-4").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-5").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-6").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(task.getStringField("Hierarchy N-7").replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("ID").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Name").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("priority").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Strategic Target Group");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
-                                    valueToWrite.add(p.getStringField("Franchise").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Target species");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Therapeutic axis");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Intended indication(s)").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Innovation level").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Targeted zones");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getBooleanField("Strategic Product") ? "true" : "false");
-
-                                    ls = p.getListField("API (active ingredient)");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Dosage form").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Portfolio Folder").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project owner").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(sdf.format(p.getDateField("Modified Date")));
-                                    valueToWrite.add(sdf.format(p.getDateField("Published Date")));
-                                    valueToWrite.add(p.getStringField("Coordinator").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Workflow State").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Frise Phase project").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Project phase").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Offer Conception manager").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Patent team member").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("POC process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Galenic process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Industrialization process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Safety process pilot").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Dose-Indication process pilot").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Reg Affairs team leaders");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-
-                                    valueToWrite.add(p.getStringField("Marketing team member").replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Supply Chain team member").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("Performing Organizations");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(p.getStringField("Owning Organization").replace("\n", ",").replace(";", ","));
-
-                                    ls = p.getListField("usersReaders");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("usersWriters");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("organizationReaders");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("organizationWriters");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("Core Team Readers");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("Core Team Writers");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    ls = p.getListField("Targeted countries");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
-                                        }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    if (!task.getStringField("Work Package ID").isEmpty()) {
-                                        valueToWrite.add(task.getStringField("Work Package ID").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
-                                        ls = task.getListField("workPackageUserWriter");
+                                        ls = task.getListField("Tag Project Scope");
+                                        Collections.sort(ls);
                                         text = "";
                                         for (String l : ls) {
                                             if (!text.equals("")) {
@@ -1729,31 +1666,277 @@ public class APIPharma {
                                             text += l;
                                         }
                                         valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    } else {
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                        valueToWrite.add("");
-                                    }
 
-                                    ls = task.getListField("TO Year 5 Countries");
-                                    text = "";
-                                    for (String l : ls) {
-                                        if (!text.equals("")) {
-                                            text += ",";
+                                        valueToWrite.add(task.getStringField("Tag PMO Scope").replace("\n", ",").replace(";", ",")); //Tag Portfolio Scope?
+
+                                        ls = task.getListField("Tag Department Scope");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
                                         }
-                                        text += l;
-                                    }
-                                    valueToWrite.add(text.replace("\n", ",").replace(";", ","));
-                                    valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 k€")).replace(".", ","));
-                                    valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 Market value")).replace(".", ","));
-                                    valueToWrite.add(task.getStringField("TO Year 5 Zones").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
 
-                                    CSVUtils.writeLine(writer, valueToWrite);
-                                    valueToWrite = new ArrayList<>();
+                                        ls = task.getListField("Tag Countries");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(task.getBooleanField("Tag Major Country in Zone") ? "true" : "false");
+                                        valueToWrite.add(task.getStringField("Tag Chapter").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("PHARMA - Study Code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("ID").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
+                                        valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-4").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-5").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-6").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(task.getStringField("Hierarchy N-7").replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("ID").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("priority").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Strategic Target Group");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
+                                        valueToWrite.add(p.getStringField("Franchise").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Target species");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Therapeutic axis");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Intended indication(s)").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Innovation level").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Targeted zones");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getBooleanField("Strategic Product") ? "true" : "false");
+
+                                        ls = p.getListField("API (active ingredient)");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Dosage form").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Portfolio Folder").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project owner").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(sdf.format(p.getDateField("Modified Date")));
+                                        valueToWrite.add(sdf.format(p.getDateField("Published Date")));
+                                        valueToWrite.add(p.getStringField("Coordinator").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Workflow State").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Frise Phase project").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Project phase").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Offer Conception manager").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Patent team member").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("POC process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Galenic process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Industrialization process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Safety process pilot").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Dose-Indication process pilot").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Reg Affairs team leaders");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+
+                                        valueToWrite.add(p.getStringField("Marketing team member").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Supply Chain team member").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("Performing Organizations");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Owning Organization").replace("\n", ",").replace(";", ","));
+
+                                        ls = p.getListField("usersReaders");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("usersWriters");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("organizationReaders");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("organizationWriters");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("Core Team Readers");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("Core Team Writers");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        ls = p.getListField("Targeted countries");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        if (!task.getStringField("Work Package ID").isEmpty()) {
+                                            valueToWrite.add(task.getStringField("Work Package ID").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
+                                            ls = task.getListField("workPackageUserWriter");
+                                            Collections.sort(ls);
+                                            text = "";
+                                            for (String l : ls) {
+                                                if (!text.equals("")) {
+                                                    text += ",";
+                                                }
+                                                text += l;
+                                            }
+                                            valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        } else {
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                            valueToWrite.add("");
+                                        }
+
+                                        ls = task.getListField("TO Year 5 Countries");
+                                        Collections.sort(ls);
+                                        text = "";
+                                        for (String l : ls) {
+                                            if (!text.equals("")) {
+                                                text += ",";
+                                            }
+                                            text += l;
+                                        }
+                                        valueToWrite.add(text.replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 k€")).replace(".", ","));
+                                        valueToWrite.add(nf.format(task.getDoubleField("TO Year 5 Market value")).replace(".", ","));
+                                        valueToWrite.add(task.getStringField("TO Year 5 Zones").replace("\n", ",").replace(";", ","));
+
+                                        CSVUtils.writeLine(writer, valueToWrite);
+                                        valueToWrite = new ArrayList<>();
+                                        cDebut.add(Calendar.DATE, 7);
+                                        cDebutFin.add(Calendar.DATE, 7);
+                                    }
                                 }
                             }
                         }
