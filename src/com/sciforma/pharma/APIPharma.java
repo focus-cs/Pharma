@@ -61,6 +61,8 @@ public class APIPharma {
 
     private static Date startPeriod;
     private static Date finishPeriod;
+    
+    private static String EFFORT_JALON = "0,0000001";
 
     private static final long CONST_DURATION_OF_DAY = 1000 * 60 * 60 * 24;
 
@@ -151,7 +153,7 @@ public class APIPharma {
                     "Tag chapter", "Study Code", "Task ID", "Task Name", "Type", "Outline Level", "% Completed", "Hierarchy N-1",
                     "Hierarchy N-2", "Hierarchy N-3", "Hierarchy N-4", "Hierarchy N-5", "Hierarchy N-6",
                     "Hierarchy N-7", "Project Id", "Project Name", "Priority", "STG", "Manager 1",
-                    "Product Code", "Project Code", "Project Type", "Category", "Franchise",
+                    "Product Code", "Product Name", "Project Code", "Project Type", "Category", "Franchise",
                     "Target species", "Therapeutic axis", "Intended indication", "Innovation level",
                     "Targeted zones", "Strategic Product", "Active ingredient", "Dosage form",
                     "Portfolio Folder", "Project owner", "Last Modification date", "Last published date",
@@ -234,21 +236,21 @@ public class APIPharma {
                                                 for (DoubleDatedData ddd : lddd) {
                                                     data = data + ddd.getData();
                                                 }
-                                                valueToWrite.add(nf.format(data).replace(".", ","));
+                                                valueToWrite.add(nf.format(data/8).replace(".", ","));
 
                                                 lddd = resAssign.getDatedData("Actual Effort", DatedData.DAY, cDebut.getTime(), cDebutFin.getTime());
                                                 data = 0;
                                                 for (DoubleDatedData ddd : lddd) {
                                                     data = data + ddd.getData();
                                                 }
-                                                valueToWrite.add(nf.format(data).replace(".", ","));
+                                                valueToWrite.add(nf.format(data/8).replace(".", ","));
 
                                                 lddd = resAssign.getDatedData("Total Effort", DatedData.DAY, cDebut.getTime(), cDebutFin.getTime());
                                                 data = 0;
                                                 for (DoubleDatedData ddd : lddd) {
                                                     data = data + ddd.getData();
                                                 }
-                                                valueToWrite.add(nf.format(data).replace(".", ","));
+                                                valueToWrite.add(nf.format(data/8).replace(".", ","));
 
                                                 valueToWrite.add(""); // Amount
                                                 /*lddd = resAssign.getDatedData("Hrcosts_k€/d", DatedData.DAY, cDebut.getTime(), cDebutFin.getTime());
@@ -315,7 +317,7 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
                                                 valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
-                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")*100).replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -341,6 +343,7 @@ public class APIPharma {
 
                                                 valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(p.getStringField("Product Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
@@ -513,7 +516,7 @@ public class APIPharma {
                                                     valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
-                                                    valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                                    valueToWrite.add(task.getStringField("Work Package Name").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                                     ls = task.getListField("workPackageUserWriter");
                                                     Collections.sort(ls);
@@ -682,7 +685,7 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
                                                 valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
-                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")*100).replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -708,6 +711,7 @@ public class APIPharma {
 
                                                 valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(p.getStringField("Product Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
@@ -880,7 +884,7 @@ public class APIPharma {
                                                     valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
-                                                    valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                                    valueToWrite.add(task.getStringField("Work Package Name").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                                     ls = task.getListField("workPackageUserWriter");
                                                     Collections.sort(ls);
@@ -1036,7 +1040,7 @@ public class APIPharma {
                                                 valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
                                                 valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
-                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")*100).replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -1062,6 +1066,7 @@ public class APIPharma {
 
                                                 valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
+                                                valueToWrite.add(p.getStringField("Product Name").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
                                                 valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
@@ -1234,7 +1239,7 @@ public class APIPharma {
                                                     valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
-                                                    valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                                    valueToWrite.add(task.getStringField("Work Package Name").replace("\n", ",").replace(";", ","));
                                                     valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                                     ls = task.getListField("workPackageUserWriter");
                                                     Collections.sort(ls);
@@ -1282,19 +1287,19 @@ public class APIPharma {
                                     //**************************************************************************************\\
                                     Logger.info("  Milestones '" + task.getStringField("name") + "':");
                                     //**************************************************************************************\\
-                                    /*
-                                     cDebut.setTime(task.getDateField("Start"));
+                                    
+                                    /* cDebut.setTime(task.getDateField("Start"));
                                      cDebutFin.setTime(task.getDateField("Start"));
                                      cDebutFin.add(Calendar.DATE, 6);
-                                     cFin.setTime(task.getDateField("Finish"));
-                                     */
+                                     cFin.setTime(task.getDateField("Finish"));*/
+                                     
                                     cDebut.setTime(startPeriod);
                                     cDebutFin.setTime(startPeriod);
                                     cDebutFin.add(Calendar.DATE, 6);
                                     cFin.setTime(finishPeriod);
-                                    while (cDebut.before(cFin)) {
-                                        valueToWrite.add(sdf.format(cDebut.getTime()));
-                                        valueToWrite.add(sdf.format(cDebutFin.getTime()));
+                                    if (cDebut.getTime().before(task.getDateField("Start")) && cFin.getTime().after(task.getDateField("Start"))) {
+                                        valueToWrite.add(sdf.format(task.getDateField("Start")));
+                                        valueToWrite.add(sdf.format(task.getDateField("Finish")));
                                         valueToWrite.add(String.valueOf(cDebut.get(Calendar.YEAR)));
                                         valueToWrite.add((cDebut.get(Calendar.MONTH) >= Calendar.JANUARY && cDebut.get(Calendar.MONTH) <= Calendar.MARCH) ? "Q1" : (cDebut.get(Calendar.MONTH) >= Calendar.APRIL && cDebut.get(Calendar.MONTH) <= Calendar.JUNE) ? "Q2" : (cDebut.get(Calendar.MONTH) >= Calendar.JULY && cDebut.get(Calendar.MONTH) <= Calendar.SEPTEMBER) ? "Q3" : "Q4");
                                         valueToWrite.add(String.valueOf(cDebut.get(Calendar.MONTH) + 1));
@@ -1307,9 +1312,9 @@ public class APIPharma {
                                         valueToWrite.add("");//valueToWrite.add(transaction.getStringField("Organization"));
                                         valueToWrite.add("");
                                         valueToWrite.add("");
-                                        valueToWrite.add("0,001");
-                                        valueToWrite.add("0,001");
-                                        valueToWrite.add("0,001");
+                                        valueToWrite.add(EFFORT_JALON);
+                                        valueToWrite.add(EFFORT_JALON);
+                                        valueToWrite.add(EFFORT_JALON);
                                         valueToWrite.add("");
                                         valueToWrite.add("");
                                         valueToWrite.add("");
@@ -1368,7 +1373,7 @@ public class APIPharma {
                                         valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
                                         valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")*100).replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -1394,6 +1399,7 @@ public class APIPharma {
 
                                         valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Product Name").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
@@ -1566,7 +1572,7 @@ public class APIPharma {
                                             valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                             valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
                                             valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
-                                            valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Work Package Name").replace("\n", ",").replace(";", ","));
                                             valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                             ls = task.getListField("workPackageUserWriter");
                                             Collections.sort(ls);
@@ -1604,8 +1610,8 @@ public class APIPharma {
 
                                         CSVUtils.writeLine(writer, valueToWrite);
                                         valueToWrite = new ArrayList<>();
-                                        cDebut.add(Calendar.DATE, 7);
-                                        cDebutFin.add(Calendar.DATE, 7);
+                                        //cDebut.add(Calendar.DATE, 7);
+                                        //cDebutFin.add(Calendar.DATE, 7);
                                     }
                                 }
                                 if (task.getBooleanField("isWorkPackage")) {
@@ -1637,9 +1643,9 @@ public class APIPharma {
                                         valueToWrite.add("");//valueToWrite.add(transaction.getStringField("Organization"));
                                         valueToWrite.add("");
                                         valueToWrite.add("");
-                                        valueToWrite.add("0,001");
-                                        valueToWrite.add("0,001");
-                                        valueToWrite.add("0,001");
+                                        valueToWrite.add(EFFORT_JALON);
+                                        valueToWrite.add(EFFORT_JALON);
+                                        valueToWrite.add(EFFORT_JALON);
                                         valueToWrite.add("");
                                         valueToWrite.add("");
                                         valueToWrite.add("");
@@ -1698,7 +1704,7 @@ public class APIPharma {
                                         valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getBooleanField("milestones") ? "Milestones" : "Task");
                                         valueToWrite.add(String.valueOf(task.getIntField("Outline Level")).replace("\n", ",").replace(";", ","));
-                                        valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")).replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(String.valueOf(task.getDoubleField("% Completed")*100).replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getStringField("Hierarchy N-1").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getStringField("Hierarchy N-2").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(task.getStringField("Hierarchy N-3").replace("\n", ",").replace(";", ","));
@@ -1724,6 +1730,7 @@ public class APIPharma {
 
                                         valueToWrite.add(p.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Product code").replace("\n", ",").replace(";", ","));
+                                        valueToWrite.add(p.getStringField("Product Name").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Project Code").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Project Type").replace("\n", ",").replace(";", ","));
                                         valueToWrite.add(p.getStringField("Type").replace("\n", ",").replace(";", ",")); //Project Type / Category identique ?
@@ -1896,7 +1903,7 @@ public class APIPharma {
                                             valueToWrite.add(task.getStringField("Manager 1").replace("\n", ",").replace(";", ","));
                                             valueToWrite.add(task.getStringField("Manager 2").replace("\n", ",").replace(";", ","));
                                             valueToWrite.add(task.getStringField("Manager 3").replace("\n", ",").replace(";", ","));
-                                            valueToWrite.add(task.getStringField("Name").replace("\n", ",").replace(";", ","));
+                                            valueToWrite.add(task.getStringField("Work Package Name").replace("\n", ",").replace(";", ","));
                                             valueToWrite.add(task.getStringField("workPackagePriority").replace("\n", ",").replace(";", ","));
                                             ls = task.getListField("workPackageUserWriter");
                                             Collections.sort(ls);
